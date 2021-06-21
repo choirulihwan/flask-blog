@@ -2,18 +2,18 @@ from flask import Flask, render_template
 #from flask_sqlalchemy import SQLAlchemy
 #from flask_login import LoginManager
 from flaskext.mysql import MySQL
+from env import *
 
 #db = SQLAlchemy()
 #login_manager = LoginManager()
-
 app = Flask(__name__)
 
 mysql = MySQL()
 # MySQL configurations
-app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'root'
-app.config['MYSQL_DATABASE_DB'] = 'flask_blog'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['MYSQL_DATABASE_USER'] = db_user
+app.config['MYSQL_DATABASE_PASSWORD'] = db_password
+app.config['MYSQL_DATABASE_DB'] = db_name
+app.config['MYSQL_DATABASE_HOST'] = db_host
 mysql.init_app(app)
 conn = mysql.connect()
 
