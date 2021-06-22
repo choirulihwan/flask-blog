@@ -37,15 +37,19 @@ def convert_to_dict(result, cursor):
 
 
 def query_utama():
-    query = ("SELECT a.post_title, a.post_content, a.post_date, b.nama, c.nama_kategori, c.slug, b.username, a.post_slug "
+    query = ("SELECT a.post_title, a.post_content, a.post_date, b.nama, c.nama_kategori, c.slug, b.username, "
+             "a.post_slug, a.post_id "
              "FROM ci_posts a "
              "JOIN ci_users b ON a.post_author = b.id_user "
              "JOIN ci_categories c ON a.post_category = c.id_kategori ")
     return query
 
-
 def query_order():
     query = ("order by a.post_date desc limit %s, %s")
+    return query
+
+def query_categories():
+    query = ("select * from ci_categories")
     return query
 
 
@@ -53,7 +57,6 @@ def query_order():
 @app.route('/')
 @app.route('/page/<int:i>')
 def index(i=1):
-    per_page = 3
     start = (i * per_page) - (per_page)
 
     cursor = conn.cursor()
@@ -79,13 +82,52 @@ def single(slug):
     query = (query_utama() + "WHERE post_slug = %s")
     cursor.execute(query, (slug))
     result = cursor.fetchone()
-    return render_template('single.html', article=result)
+
+    # categories
+    cursor2 = conn.cursor()
+    query2 = query_categories()
+    cursor2.execute(query2)
+    result2 = cursor2.fetchall()
+    categories = convert_to_dict(result2, cursor2)
+
+    # recent posts
+    cursor3 = conn.cursor()
+    query3 = (query_utama() + query_order())
+    cursor3.execute(query3, (0, jml_recent_posts))
+    result3 = cursor3.fetchall()
+    recent_posts = convert_to_dict(result3, cursor3)
+
+    # related posts
+    cursor4 = conn.cursor()
+    query4 = (query_utama() +
+              " where c.slug = %s " +
+              " and a.post_slug != %s " +
+              query_order())
+    cursor4.execute(query4, (result[5], result[7], 0, jml_related_posts))
+    result4 = cursor4.fetchall()
+    related_posts = convert_to_dict(result4, cursor4)
+
+    #next post
+    cursor5 = conn.cursor()
+    query5 = (query_utama() +
+              " where a.post_id = (select min(post_id) from ci_posts where post_id > %s) ")
+    cursor5.execute(query5, (result[8]))
+    result5 = cursor5.fetchone()
+
+    # previous post
+    cursor6 = conn.cursor()
+    query6 = (query_utama() +
+              " where a.post_id = (select max(post_id) from ci_posts where post_id < %s) ")
+    cursor6.execute(query6, (result[8]))
+    result6 = cursor6.fetchone()
+
+    return render_template('single.html', article=result, categories=categories, recent_posts=recent_posts,
+                           related_posts=related_posts, previous=result6, next=result5)
 
 
 @app.route('/<jenis>/<name>/')
 @app.route('/<jenis>/<name>/page/<int:i>')
 def archive(jenis, name, i=1):
-    per_page = 3
     start = (i * per_page) - (per_page)
 
     cursor = conn.cursor()
