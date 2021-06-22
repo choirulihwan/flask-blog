@@ -19,12 +19,12 @@
 
             <h1 class="blog-post-title">{{ article[0] }}</h1>
 
-            <p class="blog-post-meta">{{ article[2] | formatdatetime("%d %b %Y") }} oleh: <a href="{{ url_for('author', name=article[6]) }}">{{ article[3] }}</a></p>
+            <p class="blog-post-meta">{{ article[2] | formatdatetime("%d %b %Y") }} oleh: <a href="{{ url_for('archive', jenis='author', name=article[6]) }}">{{ article[3] }}</a></p>
 
 
               <hr/>
             {{ article[1]|safe }}
-              <p class="blog-post-meta">Kategori <a href="{{ url_for('cat', slug=article[5]) }}">{{ article[4] }}</a></p>
+              <p class="blog-post-meta">Kategori <a href="{{ url_for('archive', jenis='cat', name=article[5]) }}">{{ article[4] }}</a></p>
           </div><!-- /.blog-post -->
             <hr/>
           <nav class="blog-pagination">

@@ -3,7 +3,7 @@ from flask import Flask, render_template
 #from flask_login import LoginManager
 from flaskext.mysql import MySQL
 from env import *
-
+import math
 
 #db = SQLAlchemy()
 #login_manager = LoginManager()
@@ -26,6 +26,7 @@ def format_datetime(value, format="%d %b %Y %I:%M %p"):
         return ""
     return value.strftime(format)
 
+
 # function2
 def convert_to_dict(result, cursor):
     insertObject = []
@@ -35,62 +36,81 @@ def convert_to_dict(result, cursor):
     return insertObject
 
 
+def query_utama():
+    query = ("SELECT a.post_title, a.post_content, a.post_date, b.nama, c.nama_kategori, c.slug, b.username, a.post_slug "
+             "FROM ci_posts a "
+             "JOIN ci_users b ON a.post_author = b.id_user "
+             "JOIN ci_categories c ON a.post_category = c.id_kategori ")
+    return query
+
+
+def query_order():
+    query = ("order by a.post_date desc limit %s, %s")
+    return query
+
+
 # routing
 @app.route('/')
-def hello_world():
-    cursor = conn.cursor()
-    query = ("SELECT post_title, post_content, post_slug, nama_kategori, post_date "
-             "FROM ci_posts a "
-             "JOIN ci_categories b ON a.post_category = b.id_kategori")
+@app.route('/page/<int:i>')
+def index(i=1):
+    per_page = 3
+    start = (i * per_page) - (per_page)
 
+    cursor = conn.cursor()
+
+    query = query_utama()
     cursor.execute(query)
-    result = cursor.fetchall()
-    result_set = convert_to_dict(result, cursor)
+    jml = cursor.rowcount
+    jml_page = int(math.ceil(jml/per_page))
+
+    cursor2 = conn.cursor()
+    query2 = (query + query_order())
+    cursor2.execute(query2, (start, per_page))
+    result2 = cursor2.fetchall()
+    result_set = convert_to_dict(result2, cursor)
+
     judul = 'Terbaru'
-    return render_template('index.html', data=result_set, judul=judul)
+    return render_template('index.html', data=result_set, judul=judul, jml_page=jml_page)
 
 
 @app.route('/<slug>/')
 def single(slug):
     cursor = conn.cursor()
-    query = ("SELECT a.post_title, a.post_content, a.post_date, b.nama, c.nama_kategori, c.slug, b.username "
-             "FROM ci_posts a "
-             "JOIN ci_users b ON a.post_author = b.id_user "
-             "JOIN ci_categories c ON a.post_category = c.id_kategori "
-             "WHERE post_slug = %s")
+    query = (query_utama() + "WHERE post_slug = %s")
     cursor.execute(query, (slug))
     result = cursor.fetchone()
     return render_template('single.html', article=result)
 
 
-@app.route('/cat/<slug>/')
-def cat(slug):
-    cursor = conn.cursor()
-    query = ("SELECT post_title, post_content, post_slug, nama_kategori, post_date "
-             "FROM ci_posts a "
-             "JOIN ci_categories b ON a.post_category = b.id_kategori "
-             "WHERE b.slug = %s")
-    cursor.execute(query, (slug))
-    result = cursor.fetchall()
-    result_set = convert_to_dict(result, cursor)
-    judul = 'Kategori ' + result_set[0]['nama_kategori']
-    return render_template('index.html', data=result_set, judul=judul)
+@app.route('/<jenis>/<name>/')
+@app.route('/<jenis>/<name>/page/<int:i>')
+def archive(jenis, name, i=1):
+    per_page = 3
+    start = (i * per_page) - (per_page)
 
-
-@app.route('/author/<name>/')
-def author(name):
     cursor = conn.cursor()
-    query = ("SELECT post_title, post_content, post_slug, nama_kategori, post_date, c.nama "
-             "FROM ci_posts a "            
-             "JOIN ci_categories b ON a.post_category = b.id_kategori "
-             "JOIN ci_users c ON a.post_author = c.id_user "
-             "WHERE c.username = %s")
+    if jenis == 'cat':
+        query = (query_utama() + "WHERE c.slug = %s")
+    elif jenis == 'author':
+        query = (query_utama() + "WHERE b.username = %s")
+
     cursor.execute(query, (name))
-    result = cursor.fetchall()
-    result_set = convert_to_dict(result, cursor)
-    judul = result_set[0]['nama']
 
-    return render_template('index.html', data=result_set, judul=judul)
+    jml = cursor.rowcount
+    jml_page = int(math.ceil(jml / per_page))
+
+    cursor2 = conn.cursor()
+    query2 = (query + query_order())
+    cursor2.execute(query2, (name, start, per_page))
+    result2 = cursor2.fetchall()
+    result_set = convert_to_dict(result2, cursor)
+
+    if jenis == 'cat':
+        judul = 'Kategori ' + result_set[0]['nama_kategori']
+    elif jenis == 'author':
+        judul = result_set[0]['nama']
+
+    return render_template('archive.html', data=result_set, judul=judul, jml_page=jml_page)
 
 
 if __name__ == '__main__':
