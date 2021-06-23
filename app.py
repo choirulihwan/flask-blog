@@ -1,12 +1,8 @@
 from flask import Flask, render_template
-#from flask_sqlalchemy import SQLAlchemy
-#from flask_login import LoginManager
 from flaskext.mysql import MySQL
 from env import *
 import math
 
-#db = SQLAlchemy()
-#login_manager = LoginManager()
 app = Flask(__name__)
 
 mysql = MySQL()
@@ -44,13 +40,63 @@ def query_utama():
              "JOIN ci_categories c ON a.post_category = c.id_kategori ")
     return query
 
+
 def query_order():
     query = ("order by a.post_date desc limit %s, %s")
     return query
 
+
 def query_categories():
     query = ("select * from ci_categories")
     return query
+
+
+def get_categories():
+    cursor = conn.cursor()
+    query = query_categories()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    categories = convert_to_dict(result, cursor)
+    return categories
+
+
+def get_recent_posts():
+    cursor = conn.cursor()
+    query = (query_utama() + query_order())
+    cursor.execute(query, (0, jml_recent_posts))
+    result = cursor.fetchall()
+    recent_posts = convert_to_dict(result, cursor)
+    return recent_posts
+
+
+def get_related_posts(cat_slug, slug):
+    cursor = conn.cursor()
+    query = (query_utama() +
+              " where c.slug = %s " +
+              " and a.post_slug != %s " +
+              query_order())
+    cursor.execute(query, (cat_slug, slug, 0, jml_related_posts))
+    result = cursor.fetchall()
+    related_posts = convert_to_dict(result, cursor)
+    return related_posts
+
+
+def get_next_post(post_id):
+    cursor = conn.cursor()
+    query = (query_utama() +
+              " where a.post_id = (select min(post_id) from ci_posts where post_id > %s) ")
+    cursor.execute(query, (post_id))
+    result = cursor.fetchone()
+    return result[5]
+
+
+def get_previous_post(post_id):
+    cursor = conn.cursor()
+    query = (query_utama() +
+              " where a.post_id = (select max(post_id) from ci_posts where post_id < %s) ")
+    cursor.execute(query, (post_id))
+    result = cursor.fetchone()
+    return result[5]
 
 
 # routing
@@ -84,45 +130,22 @@ def single(slug):
     result = cursor.fetchone()
 
     # categories
-    cursor2 = conn.cursor()
-    query2 = query_categories()
-    cursor2.execute(query2)
-    result2 = cursor2.fetchall()
-    categories = convert_to_dict(result2, cursor2)
+    categories = get_categories()
 
     # recent posts
-    cursor3 = conn.cursor()
-    query3 = (query_utama() + query_order())
-    cursor3.execute(query3, (0, jml_recent_posts))
-    result3 = cursor3.fetchall()
-    recent_posts = convert_to_dict(result3, cursor3)
+    recent_posts = get_recent_posts()
 
     # related posts
-    cursor4 = conn.cursor()
-    query4 = (query_utama() +
-              " where c.slug = %s " +
-              " and a.post_slug != %s " +
-              query_order())
-    cursor4.execute(query4, (result[5], result[7], 0, jml_related_posts))
-    result4 = cursor4.fetchall()
-    related_posts = convert_to_dict(result4, cursor4)
+    related_posts = get_related_posts(result[5], result[7])
 
-    #next post
-    cursor5 = conn.cursor()
-    query5 = (query_utama() +
-              " where a.post_id = (select min(post_id) from ci_posts where post_id > %s) ")
-    cursor5.execute(query5, (result[8]))
-    result5 = cursor5.fetchone()
+    # next post
+    next_post = get_next_post(result[8])
 
     # previous post
-    cursor6 = conn.cursor()
-    query6 = (query_utama() +
-              " where a.post_id = (select max(post_id) from ci_posts where post_id < %s) ")
-    cursor6.execute(query6, (result[8]))
-    result6 = cursor6.fetchone()
+    previous = get_previous_post(result[8])
 
     return render_template('single.html', article=result, categories=categories, recent_posts=recent_posts,
-                           related_posts=related_posts, previous=result6, next=result5)
+                           related_posts=related_posts, previous=previous, next=next_post)
 
 
 @app.route('/<jenis>/<name>/')
