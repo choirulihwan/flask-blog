@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flaskext.mysql import MySQL
 from env import *
 import math
@@ -182,9 +182,15 @@ def archive(jenis, name, i=1):
     result_set = convert_to_dict(result2, cursor)
 
     if jenis == 'cat':
-        judul = 'Kategori ' + result_set[0]['nama_kategori']
+        if len(result_set) > 0:
+            judul = 'Kategori ' + result_set[0]['nama_kategori']
+        else:
+            judul = 'Kategori ' + request.path.split("/")[2]
     elif jenis == 'author':
-        judul = result_set[0]['nama']
+        if len(result_set) > 0:
+            judul = result_set[0]['nama']
+        else:
+            judul = request.path.split("/")[2]
 
     return render_template('archive.html', data=result_set, judul=judul, jml_page=jml_page)
 
