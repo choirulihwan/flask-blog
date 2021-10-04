@@ -76,8 +76,10 @@ def get_related_posts(cat_slug, slug):
               " and a.post_slug != %s " +
               query_order())
     cursor.execute(query, (cat_slug, slug, 0, jml_related_posts))
+    # print(cursor._last_executed)
     result = cursor.fetchall()
     related_posts = convert_to_dict(result, cursor)
+
     return related_posts
 
 
@@ -87,7 +89,10 @@ def get_next_post(post_id):
               " where a.post_id = (select min(post_id) from ci_posts where post_id > %s) ")
     cursor.execute(query, (post_id))
     result = cursor.fetchone()
-    return result[5]
+    if result is not None:
+        return result
+    else:
+        return []
 
 
 def get_previous_post(post_id):
@@ -96,7 +101,12 @@ def get_previous_post(post_id):
               " where a.post_id = (select max(post_id) from ci_posts where post_id < %s) ")
     cursor.execute(query, (post_id))
     result = cursor.fetchone()
-    return result[5]
+    # print(result)
+    # print(cursor._last_executed)
+    if result is not None:
+        return result
+    else:
+        return []
 
 
 # routing
@@ -143,6 +153,7 @@ def single(slug):
 
     # previous post
     previous = get_previous_post(result[8])
+    print(previous)
 
     return render_template('single.html', article=result, categories=categories, recent_posts=recent_posts,
                            related_posts=related_posts, previous=previous, next=next_post)

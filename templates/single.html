@@ -40,8 +40,9 @@
               {% set next_disable = 'disabled' %}
             {% endif %}
 
-            <a class="btn btn-outline-primary {{ prev_disable }}" href="{{ url_for('single', slug=previous[7]) }}">Older</a>
             <a class="btn btn-outline-secondary {{ next_disable }}" href="{{ url_for('single', slug=next[7]) }}">Newer</a>
+            <a class="btn btn-outline-primary {{ prev_disable }}" href="{{ url_for('single', slug=previous[7]) }}">Older</a>
+
           </nav>
 
         </div><!-- /.blog-main -->
