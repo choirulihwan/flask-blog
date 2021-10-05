@@ -228,7 +228,8 @@ def sitemap():
     for post in blog_posts:
         url = {
             "loc": f"{host_base}/{post['post_slug']}",
-            "lastmod": post['post_date'].strftime("%Y-%m-%dT%H:%M:%SZ")
+            # "lastmod": post['post_date'].strftime("%Y-%m-%dT%H:%M:%SZ")
+            "lastmod": post['post_date']
         }
         dynamic_urls.append(url)
 
