@@ -199,9 +199,9 @@ def archive(jenis, name, i=1):
     return render_template('archive.html', data=result_set, judul=judul, jml_page=jml_page)
 
 
-# @app.route("/sitemap")
-# @app.route("/sitemap/")
-@app.route("/sitemapindex.xml")
+@app.route("/sitemap.xml")
+@app.route("/sitemap.xml/")
+# @app.route("/sitemapindex.xml")
 def sitemap():
     host_components = urlparse(request.host_url)
     host_base = host_components.scheme + "://" + host_components.netloc
