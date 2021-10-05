@@ -1,5 +1,8 @@
-from flask import Flask, render_template, request
+from urllib.parse import urlparse
+
+from flask import Flask, render_template, request, make_response
 from flaskext.mysql import MySQL
+# from flask_sitemap import Sitemap
 from env import *
 import math
 
@@ -13,6 +16,7 @@ app.config['MYSQL_DATABASE_DB'] = db_name
 app.config['MYSQL_DATABASE_HOST'] = db_host
 mysql.init_app(app)
 conn = mysql.connect()
+# ext = Sitemap(app=app)
 
 # filter
 @app.template_filter('formatdatetime')
@@ -193,6 +197,47 @@ def archive(jenis, name, i=1):
             judul = request.path.split("/")[2]
 
     return render_template('archive.html', data=result_set, judul=judul, jml_page=jml_page)
+
+
+# @app.route("/sitemap")
+# @app.route("/sitemap/")
+@app.route("/sitemapindex.xml")
+def sitemap():
+    host_components = urlparse(request.host_url)
+    host_base = host_components.scheme + "://" + host_components.netloc
+
+    # Static routes with static content
+    # static_urls = list()
+    # for rule in app.url_map.iter_rules():
+    #     if not str(rule).startswith("/admin") and not str(rule).startswith("/user"):
+    #         if "GET" in rule.methods and len(rule.arguments) == 0:
+    #             url = {
+    #                 "loc": f"{host_base}{str(rule)}"
+    #             }
+    #             static_urls.append(url)
+
+    # Dynamic routes with dynamic content
+    dynamic_urls = list()
+
+    cursor = conn.cursor()
+    query = query_utama()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    blog_posts  = convert_to_dict(result, cursor)
+
+    for post in blog_posts:
+        url = {
+            "loc": f"{host_base}/{post['post_slug']}",
+            "lastmod": post['post_date'].strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+        dynamic_urls.append(url)
+
+    # xml_sitemap = render_template("public/sitemap.xml", static_urls=static_urls, dynamic_urls=dynamic_urls,
+    #                               host_base=host_base)
+    xml_sitemap = render_template("public/sitemap.xml", dynamic_urls=dynamic_urls, host_base = host_base)
+    response = make_response(xml_sitemap)
+    response.headers["Content-Type"] = "application/xml"
+    return response
 
 
 if __name__ == '__main__':
