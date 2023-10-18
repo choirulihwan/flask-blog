@@ -40,7 +40,7 @@ def query_utama():
     query = ("SELECT a.post_title, a.post_content, a.post_date, b.nama, c.nama_kategori, c.slug, b.username, "
              "a.post_slug, a.post_id "
              "FROM ci_posts a "
-             "JOIN ci_users b ON a.post_author = b.id_user "
+             "JOIN ci_users b ON a.post_author = b.id "
              "JOIN ci_categories c ON a.post_category = c.id_kategori ")
     return query
 
@@ -157,7 +157,6 @@ def single(slug):
 
     # previous post
     previous = get_previous_post(result[8])
-    print(previous)
 
     return render_template('single.html', article=result, categories=categories, recent_posts=recent_posts,
                            related_posts=related_posts, previous=previous, next=next_post)
